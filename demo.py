@@ -22,6 +22,8 @@ model = torch.load('torch_model.pkl')
 img = cv2.imread(os.path.join(out_dir, 'demo.jpg'))
 img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
+class_names = range(10)
+
 model.eval()
 with torch.no_grad():
     out = str('')
@@ -32,7 +34,7 @@ with torch.no_grad():
         tmp = tmp.unsqueeze(0)
         outputs = model(tmp.to(device))
         _, preds = torch.max(outputs, 1)
-        out += class_names[preds]
+        out += str(class_names[preds])
 
 print(out)
 cv2.imshow('demo', img)

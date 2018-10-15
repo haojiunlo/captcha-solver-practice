@@ -17,8 +17,8 @@ for i in range(1000):
     out_dir = [val_path, train_path]
     sel = np.random.binomial(1, 0.8)
     img = cv2.imread(path + '/'+str(i+1)+'.jpg')
-    tmp = df.values.squeeze()[i]
+    tmp = df.values[i]
     for j, w in enumerate(range(0, 138, 23)):
         crop_img = img[:, w:w+23]
-        label = tmp[j]
+        label = tmp[0][j]
         cv2.imwrite(os.path.join(out_dir[sel][int(label)], str(i)+'_'+label+'.jpg'), crop_img)

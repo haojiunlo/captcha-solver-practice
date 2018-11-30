@@ -30,11 +30,8 @@ with torch.no_grad():
     out = str('')
     for w in range(0, 138, 23):
         crop_img = img_[:, w:w+23]
+        crop_img = crop_img[np.newaxis, np.newaxis, :, :]
         tmp = torch.from_numpy(crop_img).float()
-        tmp = tmp.unsqueeze(0)
-        tmp = tmp.unsqueeze(0)
-        # tmp = tmp.transpose(1,3)
-        # print(tmp.shape)
         outputs = model(tmp.to(device))
         _, preds = torch.max(outputs, 1)
         out += str(class_names[preds])

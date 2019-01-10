@@ -10,6 +10,7 @@ from torchvision import datasets, models, transforms
 import time
 import os
 import copy
+import argparse
 
 def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
     since = time.time()
@@ -102,8 +103,8 @@ class BnLayer(nn.Module):
         self.bn = nn.BatchNorm2d(nf)
         
     def forward(self, x):
-        x = F.relu(self.bn(self.conv(x)))
-        return x
+        x = F.relu(self.conv(x))
+        return self.bn(x)
 
 class ConvBnNet2(nn.Module):
     def __init__(self, layers, c):
@@ -124,8 +125,44 @@ class ConvBnNet2(nn.Module):
         x = x.view(x.size(0), -1)
         return F.softmax(self.out(x), dim=-1)
 
+class ResnetLayer(BnLayer):
+    def forward(self, x): return x + super().forward(x)
+
+class Resnet(nn.Module):
+    def __init__(self, layers, c):
+        super().__init__()
+        self.conv1 = nn.Conv2d(3, 10, kernel_size=5, stride=1, padding=2)
+        self.layers = nn.ModuleList([BnLayer(layers[i], layers[i+1])
+            for i in range(len(layers) - 1)])
+        self.layers2 = nn.ModuleList([ResnetLayer(layers[i+1], layers[i + 1], 1)
+            for i in range(len(layers) - 1)])
+        self.layers3 = nn.ModuleList([ResnetLayer(layers[i+1], layers[i + 1], 1)
+            for i in range(len(layers) - 1)])
+        self.out = nn.Linear(layers[-1], c)
+        
+    def forward(self, x):
+        x = self.conv1(x)
+        for l,l2,l3 in zip(self.layers, self.layers2, self.layers3):
+            x = l3(l2(l(x)))
+        x = F.adaptive_max_pool2d(x, 1)
+        x = x.view(x.size(0), -1)
+        return F.log_softmax(self.out(x), dim=-1)
+
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--Net", dest="net", help="model arch (defult ConvBnNet)", type=str)
+    parser.set_defaults(net='ConvBnNet')
+    parser.add_argument("--num_epochs", dest="epochs", help="num_epochs (defult 20)", type=int)
+    parser.set_defaults(epochs=20)
+    parser.add_argument("--lr", dest="lr", help="lr (defult 0.01)", type=float)
+    parser.set_defaults(lr=0.01)
+    parser.add_argument("--prefix", dest="prefix", help="model name prefix (defult prefix)", type=str)
+    parser.set_defaults(prefix='prefix')
+    args = parser.parse_args()
+
+
+
     data_transforms = {
         'train': transforms.Compose([
             transforms.ToTensor()
@@ -147,16 +184,20 @@ if __name__ == '__main__':
 
     device = torch.device("cuda:0")
 
+    
+    if args.net == 'ConvBnNet': model = ConvBnNet2([10, 20, 40], 10)
+    elif args.net == 'Resnet': model = Resnet([10, 20, 40], 10)
+    else: raise ValueError("Oops! not valid model arch. ")
 
-    model = ConvBnNet2([10, 20, 40], 10)
+    
     model = model.to(device)
 
 
     criterion = nn.CrossEntropyLoss()
 
-    optimizer = optim.SGD(model.parameters(), lr = 0.01, momentum=0.9)
+    optimizer = optim.SGD(model.parameters(), lr = args.lr, momentum=0.9)
     # optimizer = optim.Adam(model.parameters())
 
     exp_lr_scheduler = lr_scheduler.CosineAnnealingLR(optimizer, 5, eta_min=0, last_epoch=-1)
-    model = train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs=20)
-    torch.save(model, 'torch_model_.pkl')
+    model = train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs=args.epochs)
+    torch.save(model, args.prefix+'_torch_model.pkl')

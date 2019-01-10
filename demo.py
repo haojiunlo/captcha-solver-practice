@@ -5,6 +5,13 @@ from bs4 import BeautifulSoup
 import time
 import urllib.request
 import requests
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--prefix", dest="prefix", help="model predix (defult prefix)", type=str)
+parser.set_defaults(net='prefix')
+args = parser.parse_args()
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
@@ -18,7 +25,7 @@ with open(os.path.join(out_dir, 'demo.jpg'), 'wb') as file:
     file.write(response.content)
     file.flush() 
 
-model = torch.load('torch_model_.pkl')
+model = torch.load(args.prefix+'_torch_model.pkl')
 
 transform = transforms.Compose([
     transforms.ToTensor(), ]

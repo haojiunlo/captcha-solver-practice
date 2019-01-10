@@ -28,7 +28,6 @@ img = cv2.imread(os.path.join(out_dir, 'demo.jpg'))
 img_ = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 img_ = transform(img_)
 
-# img_ = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
 class_names = range(10)
 
@@ -37,11 +36,7 @@ with torch.no_grad():
     out = str('')
     for w in range(0, 138, 23):
         crop_img = img_[:, :, w:w+23]
-        # crop_img = np.moveaxis(crop_img, -1, 0)
         crop_img = crop_img[np.newaxis, :, :, :]
-        # tmp = torch.tensor(crop_img, dtype=torch.float, device=device)
-        # print(tmp)
-        # tmp = torch.from_numpy(crop_img).float()
         outputs = model(crop_img.to(device))
         _, preds = torch.max(outputs, 1)
         out += str(class_names[preds])

@@ -99,18 +99,10 @@ class BnLayer(nn.Module):
         super().__init__()
         self.conv = nn.Conv2d(ni, nf, kernel_size=kernel_size, stride=stride,
                               bias=False, padding=1)
-        # self.a = nn.Parameter(torch.zeros(nf,1,1))
-        # self.m = nn.Parameter(torch.ones(nf,1,1))
         self.bn = nn.BatchNorm2d(nf)
         
     def forward(self, x):
         x = F.relu(self.bn(self.conv(x)))
-        # x = self.bn(x)
-        # x_chan = x.transpose(0,1).contiguous().view(x.size(1), -1)
-        # if self.training:
-        #     self.means = x_chan.mean(1)[:,None,None]
-        #     self.stds  = x_chan.std (1)[:,None,None]
-        # return (x-self.means) / (self.stds+1e-4) *self.m + self.a
         return x
 
 class ConvBnNet2(nn.Module):
@@ -130,8 +122,6 @@ class ConvBnNet2(nn.Module):
             x = l2(x)
         x = F.adaptive_max_pool2d(x, 1)
         x = x.view(x.size(0), -1)
-        # x = self.out(x)
-        # print(x.size())
         return F.softmax(self.out(x), dim=-1)
 
 
